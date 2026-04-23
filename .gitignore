@@ -41,3 +41,7 @@ i18n
 /.cproject
 /.project
 .gitignore~
+
+# iOS: generated Xcode project (run `make TARGET=ios xcodeproj` to regenerate)
+/KOReader.xcodeproj/
+/platform/ios/Info.plist

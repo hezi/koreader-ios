@@ -143,6 +143,7 @@ TARGET:
     kobov4                    Compatible with Mk.7+ Kobo devices on FW 4.x
     kobov5                    Compatible with all Kobo & Tolino devices on FW 5.x
     linux
+    ios                       iOS / iPadOS (cross-compile from macOS, experimental)
     macos                     MacOS app bundle
     pocketbook
     remarkable
@@ -170,6 +171,7 @@ function setup_target() {
         macos) is_system macOS ;;
         win32) is_system Windows ;;
         # Devices.
+        ios) is_system macOS ;;
         android-arm | android-arm64 | android-x86 | android-x86_64)
             ANDROID_ARCH="${TARGET#android-}"
             TARGET='android'
