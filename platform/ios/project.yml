@@ -1,0 +1,87 @@
+name: KOReader
+options:
+  bundleIdPrefix: rocks.koreader
+  deploymentTarget:
+    iOS: "14.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+  # The project lives at the repo root so paths in `sources`/`scripts`
+  # resolve naturally to the rest of the tree.
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    ENABLE_BITCODE: NO
+    SWIFT_VERSION: "5.0"
+    # Skip the simulator slice for now — base/ libs are device-only.
+    SUPPORTED_PLATFORMS: iphoneos
+    ONLY_ACTIVE_ARCH: YES
+    ARCHS: arm64
+    VALID_ARCHS: arm64
+    IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+    # Personal team / free-cert signing: leave team blank so each user
+    # can fill it in via the Xcode UI. Manual style avoids the
+    # capabilities-spam Xcode does under Automatic.
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    PRODUCT_NAME: KOReader
+
+targets:
+  KOReader:
+    type: application
+    platform: iOS
+    sources:
+      - path: platform/ios/ios_loader.m
+        type: file
+      - path: platform/ios/ios_filepicker.m
+        type: file
+      - path: platform/ios/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: rocks.koreader.ios
+        INFOPLIST_FILE: platform/ios/Info.plist
+        CODE_SIGN_ENTITLEMENTS: platform/ios/KOReader.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Header / library search paths point at the `base/build` tree
+        # produced by `make TARGET=ios base`. The pre-build script makes
+        # sure that's up-to-date before we start compiling.
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/base/build/arm64-apple-ios14.0/staging/include
+          - $(SRCROOT)/base/build/arm64-apple-ios14.0/staging/include/luajit-2.1
+        LIBRARY_SEARCH_PATHS:
+          - $(SRCROOT)/base/build/arm64-apple-ios14.0/libs
+          - $(SRCROOT)/base/build/arm64-apple-ios14.0/staging/lib
+        OTHER_LDFLAGS:
+          - -lluajit
+          - -lSDL3
+        # rpath so dyld finds the dylibs we copy into app/libs at post-build.
+        LD_RUNPATH_SEARCH_PATHS:
+          - $(inherited)
+          - "@executable_path/app/libs"
+        # Embedded dylibs need this; iOS 14+ enforces it.
+        LD_DYLIB_INSTALL_NAME: ""
+        # Quiet the noisy override of macOS-isms.
+        CLANG_ENABLE_OBJC_ARC: YES
+    dependencies:
+      - sdk: Foundation.framework
+      - sdk: UIKit.framework
+      - sdk: CoreFoundation.framework
+      - sdk: UniformTypeIdentifiers.framework
+    preBuildScripts:
+      - name: Build base/ libs
+        script: |
+          set -euo pipefail
+          # Xcode strips PATH down. Reinstate Homebrew GNU tools used by
+          # KOReader's Makefile.
+          export PATH="$(brew --prefix)/opt/findutils/libexec/gnubin:$(brew --prefix)/opt/gnu-getopt/bin:$(brew --prefix)/opt/make/libexec/gnubin:$(brew --prefix)/opt/util-linux/bin:${PATH}"
+          cd "${SRCROOT}"
+          make TARGET=ios base
+        basedOnDependencyAnalysis: false
+    postBuildScripts:
+      - name: Embed assets and dylibs
+        script: |
+          set -euo pipefail
+          "${SRCROOT}/platform/ios/embed-bundle-payload.sh"
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/app/reader.lua
