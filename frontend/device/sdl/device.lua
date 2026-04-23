@@ -276,6 +276,14 @@ function Device:init()
                 self.window.top = ev.value.data2
             elseif ev.code == SDL.SDL.SDL_EVENT_TEXT_INPUT then
                 UIManager:sendEvent(Event:new("TextInput", tostring(ev.value)))
+            elseif ev.code == SDL.SDL.SDL_EVENT_DID_ENTER_FOREGROUND then
+                -- iOS resume: SDL3's renderer/texture state may have
+                -- been invalidated while we were backgrounded — the
+                -- last frame is still on-screen but stale, and any
+                -- new bb writes are going into a texture that won't
+                -- composite. Force a full repaint to re-establish
+                -- the texture and present.
+                UIManager:setDirty("all", "full")
             end
         end,
     }

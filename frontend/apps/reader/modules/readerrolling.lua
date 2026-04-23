@@ -1893,6 +1893,17 @@ function ReaderRolling:tearDownRerenderingAutomation()
 end
 
 function ReaderRolling:_rerenderInBackground()
+    -- iOS: the inner subprocess sits in an infinite usleep loop waiting
+    -- for the parent to flip shared_state[2] over mmap. With our inline
+    -- runInSubProcess patch on iOS the "subprocess" runs on the main
+    -- thread, so that flip never happens and crengine ends up in a
+    -- wedged state that crashes later renders deep in LuaJIT FFI
+    -- (lj_cconv_ct_ct). Returning false is the supported "fork failed"
+    -- fallback — the rerender then happens at the next document reload.
+    if os.getenv("KO_IOS") == "1" then
+        return false
+    end
+
     Device:enableCPUCores(2)
 
     -- Set up mmap segment to exchange signals between main and sub processes

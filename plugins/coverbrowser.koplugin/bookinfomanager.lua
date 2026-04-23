@@ -676,6 +676,12 @@ function BookInfoManager:collectSubprocesses()
 end
 
 function BookInfoManager:terminateBackgroundJobs()
+    if self._ios_chunk_state then
+        -- iOS chunked extraction in flight; flag for cancellation
+        -- (the next scheduled tick will see nil state and bail out).
+        self._ios_chunk_state = nil
+        UIManager:allowStandby()
+    end
     logger.dbg("terminating", #self.subprocesses_pids, "subprocesses")
     for i=1, #self.subprocesses_pids do
         FFIUtil.terminateSubProcess(self.subprocesses_pids[i])
@@ -683,7 +689,32 @@ function BookInfoManager:terminateBackgroundJobs()
 end
 
 function BookInfoManager:isExtractingInBackground()
-    return #self.subprocesses_pids > 0
+    return #self.subprocesses_pids > 0 or self._ios_chunk_state ~= nil
+end
+
+-- iOS: process one file per UIManager tick so the UI stays responsive
+-- (no fork available, and inline-extracting the whole batch freezes the
+-- screen for as long as it takes to do every book in the folder).
+function BookInfoManager:_iosProcessNextChunk()
+    local state = self._ios_chunk_state
+    if not state then return end -- terminated externally
+    if state.idx > #state.files then
+        logger.dbg("iOS BG extraction done")
+        self._ios_chunk_state = nil
+        UIManager:allowStandby()
+        if self.delayed_cleanup then
+            self.delayed_cleanup = false
+            self:cleanUp()
+        end
+        if #self.subprocesses_pids == 0 then
+            Device:enableCPUCores(1)
+        end
+        return
+    end
+    local file = state.files[state.idx]
+    state.idx = state.idx + 1
+    self:extractBookInfo(file.filepath, file.cover_specs)
+    UIManager:scheduleIn(0, function() self:_iosProcessNextChunk() end)
 end
 
 function BookInfoManager:extractInBackground(files)
@@ -697,6 +728,18 @@ function BookInfoManager:extractInBackground(files)
     -- Close current handle on sqlite, so it's not shared by both processes
     -- (both processes will re-open one when needed)
     BookInfoManager:closeDbConnection()
+
+    if os.getenv("KO_IOS") == "1" then
+        self.cleanup_needed = true
+        if not self._ios_chunk_state then
+            UIManager:preventStandby()
+            Device:enableCPUCores(2)
+        end
+        self._ios_chunk_state = { idx = 1, files = files }
+        self.subprocesses_last_added_time = time.now()
+        UIManager:scheduleIn(0, function() self:_iosProcessNextChunk() end)
+        return true
+    end
 
     -- Define task that will be run in subprocess
     local task = function()

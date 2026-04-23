@@ -156,6 +156,34 @@ end
 -- Setup device
 local Device = require("device")
 
+-- iOS: LuaJIT runs interpreter-only and there's a multi-second gap
+-- between SDL creating its window and the file browser actually
+-- rendering. Paint the KOReader logo as soon as the framebuffer
+-- exists, so the user sees something during the rest of bootup.
+if os.getenv("KO_IOS") == "1" then
+    local ok, err = pcall(function()
+        local BB = require("ffi/blitbuffer")
+        local RenderImage = require("ui/renderimage")
+        local screen = Device.screen
+        local sw, sh = screen:getWidth(), screen:getHeight()
+        local logo = RenderImage:renderImageFile("resources/koreader.png", false)
+        if not logo then
+            io.write("[ios splash] renderImageFile returned nil for resources/koreader.png\n")
+            return
+        end
+        local lw, lh = logo:getWidth(), logo:getHeight()
+        screen.bb:fill(BB.COLOR_WHITE)
+        screen.bb:blitFrom(logo,
+            math.floor((sw - lw) / 2),
+            math.floor((sh - lh) / 2),
+            0, 0, lw, lh)
+        screen:refreshFull(0, 0, sw, sh)
+        logo:free()
+        io.write("[ios splash] painted ", lw, "x", lh, " logo on ", sw, "x", sh, "\n")
+    end)
+    if not ok then io.write("[ios splash] failed: ", tostring(err), "\n") end
+end
+
 -- Document renderers canvas
 local CanvasContext = require("document/canvascontext")
 CanvasContext:init(Device)
