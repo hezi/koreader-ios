@@ -96,6 +96,10 @@ rsync -aL \
     --exclude 'plugins/timesync.koplugin' \
     "${STAGING_KOREADER}/" "${APP_BUNDLE}/app/"
 
+# 2.5) Precompile every .lua to LuaJIT bytecode (no-op if there's no
+# host luajit available — only a perf optimisation).
+"${PLATFORM_DIR}/precompile-lua.sh" "${APP_BUNDLE}/app" || true
+
 # 3) Generate Info.plist with version filled in.
 echo "[*] Writing Info.plist"
 sed "s|@VERSION@|${VERSION#v}|g" \

@@ -53,6 +53,10 @@ rsync -aL --delete \
     --exclude 'plugins/timesync.koplugin' \
     "${STAGING_KOREADER}/" "${APP_DIR}/app/"
 
+# --- 1.5) Precompile every .lua to LuaJIT bytecode in place. Skips if
+# we don't have a host luajit available; only a perf optimisation.
+"${SRCROOT}/platform/ios/precompile-lua.sh" "${APP_DIR}/app" || true
+
 # --- 2) Re-sign every embedded dylib with the same identity as the app.
 # Pick the most-resolved identity Xcode passed us, falling back to ad-hoc
 # when signing is disabled or no real identity is wired up.
