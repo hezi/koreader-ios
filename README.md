@@ -1,5 +1,31 @@
 [![KOReader](https://raw.githubusercontent.com/koreader/koreader.github.io/master/koreader-logo.png)](https://koreader.rocks)
 
+> ## iOS / iPadOS port
+>
+> This is a fork of [koreader/koreader](https://github.com/koreader/koreader) with
+> an iOS / iPadOS target. It runs on iPhone and iPad, sideloaded via Xcode with a
+> free or paid Apple Developer account.
+>
+> Highlights:
+>
+> - Native iOS app bundle with launch screen, app icon, document types, safe-area
+>   letterbox + clamping, rotation handling, night-mode invert, suspend/resume
+>   refresh, single-tap event filtering.
+> - **iCloud Drive (and any other Files-app provider) folder picker**: add cloud
+>   folders as KOReader folder shortcuts via iOS' native `UIDocumentPickerViewController`,
+>   security-scoped bookmarks resolved on each launch.
+> - **Monolibtic build** (one ~17 MiB `libkoreader-monolibtic.dylib` instead of 30+
+>   small dylibs) + **LuaJIT bytecode precompilation** at build time — cold launch on
+>   a sideloaded iPhone is around 4 seconds.
+> - LuaJIT runs interpreter-only (the iOS sandbox forbids W^X without a special
+>   entitlement). Builds against the iOS SDK from a macOS host via `make TARGET=ios`.
+>
+> Build & install: `make TARGET=ios xcodeproj`, open `KOReader.xcodeproj`, set your
+> team under Signing & Capabilities, hit Run on a connected device. The corresponding
+> base submodule lives at [hezi/koreader-base-ios](https://github.com/hezi/koreader-base-ios).
+
+---
+
 #### KOReader is a document viewer primarily aimed at e-ink readers.
 
 [![AGPL Licence][badge-license]](COPYING)
