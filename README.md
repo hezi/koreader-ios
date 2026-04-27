@@ -20,9 +20,45 @@
 > - LuaJIT runs interpreter-only (the iOS sandbox forbids W^X without a special
 >   entitlement). Builds against the iOS SDK from a macOS host via `make TARGET=ios`.
 >
-> Build & install: `make TARGET=ios xcodeproj`, open `KOReader.xcodeproj`, set your
-> team under Signing & Capabilities, hit Run on a connected device. The corresponding
-> base submodule lives at [hezi/koreader-base-ios](https://github.com/hezi/koreader-base-ios).
+> ### What you need
+>
+> - **macOS** with **Xcode** installed (App Store or developer.apple.com — not the
+>   Command-Line Tools alone; we need the iOS SDK).
+> - **Homebrew** (https://brew.sh).
+> - An **Apple ID** for sideloading. A free personal team gives you a 7-day cert
+>   that works for personal builds; a paid Developer account gives you a 1-year
+>   cert and unlocks iCloud Drive containers.
+>
+> ### Quick start
+>
+> ```sh
+> # Install build prereqs (one command — `make TARGET=ios xcodeproj` will
+> # also run a preflight that lists anything missing).
+> brew install autoconf automake bash binutils cmake coreutils findutils \
+>     gettext gnu-getopt libtool make meson nasm ninja pkgconf sdl3 \
+>     util-linux xcodegen
+>
+> # Put the GNU versions of make/find/getopt/util-linux ahead of macOS' BSD ones.
+> # Add this to your shell profile or run it in the shell you'll build from:
+> export PATH="$(brew --prefix)/opt/findutils/libexec/gnubin:$(brew --prefix)/opt/gnu-getopt/bin:$(brew --prefix)/opt/make/libexec/gnubin:$(brew --prefix)/opt/util-linux/bin:${PATH}"
+>
+> # Optional but recommended: build the macOS emulator once first. KOReader's iOS
+> # build then has a host LuaJIT it can use to precompile the bundled .lua files
+> # to bytecode (knocks ~30% off boot time). Skipped silently if absent.
+> make TARGET=macos base
+>
+> # Generate KOReader.xcodeproj at the repo root.
+> make TARGET=ios xcodeproj
+> open KOReader.xcodeproj
+> ```
+>
+> In Xcode: **Signing & Capabilities** → check *Automatically manage signing* →
+> pick your team. Then plug in your iPhone/iPad, pick it as the Run destination,
+> and hit ⌘R. The app installs and launches.
+>
+> Full instructions and a troubleshooting section live at
+> [`doc/Building_iOS.md`](doc/Building_iOS.md). The corresponding base submodule
+> is at [hezi/koreader-base-ios](https://github.com/hezi/koreader-base-ios).
 
 ---
 

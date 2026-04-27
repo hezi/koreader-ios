@@ -108,6 +108,17 @@ See [Building](https://github.com/koreader/koreader/blob/master/doc/Building.md)
 ./kodev release macos
 ```
 
+### iOS / iPadOS
+
+See [Building_iOS.md](Building_iOS.md) — the iOS target builds an
+Xcode project rather than a direct app bundle, so it doesn't fit the
+`./kodev release <target>` shape used by the others.
+
+```
+make TARGET=ios xcodeproj
+open KOReader.xcodeproj
+```
+
 ### e-Ink devices
 
 #### Cervantes
