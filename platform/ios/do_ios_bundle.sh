@@ -102,7 +102,21 @@ rsync -aL \
 
 # 3) Generate Info.plist with version filled in.
 echo "[*] Writing Info.plist"
-sed "s|@VERSION@|${VERSION#v}|g" \
+# CFBundleShortVersionString must be dotted-numeric: turn
+# v2026.03-70-gabc123_2026-04-27 into 2026.03.70 (build 70).
+_ver="${VERSION#v}"
+KO_TAG="${_ver%%-*}"
+_rest="${_ver#*-}"
+KO_AHEAD="${_rest%%-*}"
+case "${KO_AHEAD}" in
+    ''|*[!0-9]*) KO_AHEAD=0 ;;
+esac
+SHORT_VERSION="${KO_TAG}.${KO_AHEAD}"
+BUNDLE_ID="${IOS_BUNDLE_ID:-rocks.koreader.ios}"
+sed -e "s|@BUNDLE_ID@|${BUNDLE_ID}|g" \
+    -e "s|@SHORT_VERSION@|${SHORT_VERSION}|g" \
+    -e "s|@BUNDLE_VERSION@|${KO_AHEAD}|g" \
+    -e "s|@VERSION@|${SHORT_VERSION}|g" \
     "${PLATFORM_DIR}/Info.plist.in" >"${APP_BUNDLE}/Info.plist"
 
 printf 'APPL????' >"${APP_BUNDLE}/PkgInfo"

@@ -26,8 +26,11 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # version + features as the iOS target), then fall back to PATH.
 HOST_LUAJIT=""
 HOST_LUAJIT_SHARE=""
-for machine in arm64-apple-darwin25.0.0 arm64-apple-darwin24.0.0 \
-               x86_64-apple-darwin25.0.0 x86_64-apple-darwin24.0.0; do
+# Glob rather than hardcode the darwin version: the host triple tracks the
+# running macOS kernel (darwin24 = macOS 15, darwin25 = 26, darwin27 = 27...),
+# so a fixed list silently stops matching on every new macOS release.
+for cand_dir in "${REPO_ROOT}"/base/build/*-apple-darwin*; do
+    machine="$(basename "${cand_dir}")"
     cand="${REPO_ROOT}/base/build/${machine}/luajit"
     share="${REPO_ROOT}/base/build/${machine}/staging/share/luajit-2.1"
     if [ -x "$cand" ] && [ -d "$share" ]; then

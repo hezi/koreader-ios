@@ -2,7 +2,7 @@ name: KOReader
 options:
   bundleIdPrefix: rocks.koreader
   deploymentTarget:
-    iOS: "14.0"
+    iOS: "15.0"
   createIntermediateGroups: true
   developmentLanguage: en
   # The project lives at the repo root so paths in `sources`/`scripts`
@@ -18,7 +18,7 @@ settings:
     ONLY_ACTIVE_ARCH: YES
     ARCHS: arm64
     VALID_ARCHS: arm64
-    IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
     # Personal team / free-cert signing: leave team blank so each user
     # can fill it in via the Xcode UI. Manual style avoids the
     # capabilities-spam Xcode does under Automatic.
