@@ -12,6 +12,11 @@ options:
 settings:
   base:
     ENABLE_BITCODE: NO
+    # The build phases below shell out to KOReader's Makefile, which reads
+    # and writes across SRCROOT and base/. Those accesses cannot be declared
+    # as script inputs/outputs, so Xcode's user-script sandbox (default YES
+    # since Xcode 26) denies them with "Operation not permitted".
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
     SWIFT_VERSION: "5.0"
     # Skip the simulator slice for now — base/ libs are device-only.
     SUPPORTED_PLATFORMS: iphoneos
@@ -71,9 +76,13 @@ targets:
       - name: Build base/ libs and staging tree
         script: |
           set -euo pipefail
-          # Xcode strips PATH down. Reinstate Homebrew GNU tools used by
-          # KOReader's Makefile.
-          export PATH="$(brew --prefix)/opt/findutils/libexec/gnubin:$(brew --prefix)/opt/gnu-getopt/bin:$(brew --prefix)/opt/make/libexec/gnubin:$(brew --prefix)/opt/util-linux/bin:${PATH}"
+          # Xcode strips PATH down to the launchd default, which does NOT
+          # contain Homebrew -- so `brew` itself has to be found first, before
+          # it can be used to locate the GNU tools KOReader's Makefile needs.
+          # (Building from a terminal masks this: the shell's PATH is inherited.)
+          export PATH="/opt/homebrew/bin:/usr/local/bin:${PATH}"
+          BREW_PREFIX="$(brew --prefix)"
+          export PATH="${BREW_PREFIX}/opt/findutils/libexec/gnubin:${BREW_PREFIX}/opt/gnu-getopt/bin:${BREW_PREFIX}/opt/make/libexec/gnubin:${BREW_PREFIX}/opt/util-linux/bin:${PATH}"
           cd "${SRCROOT}"
           # `all` (not `base`) so the koreader-ios-…/koreader staging
           # tree gets assembled too — the post-build script rsyncs from
