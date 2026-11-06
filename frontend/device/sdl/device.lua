@@ -164,6 +164,48 @@ local UbuntuTouch = Device:extend{
     isDefaultFullscreen = yes,
 }
 
+-- iOS: do NOT inherit the desktop emulator caps (e-ink, frontlight,
+-- D-pad, Menu key, suspend). Those inflate the top/bottom menus and
+-- enable pan-from-edge gestures that fight iPhone system UI.
+local iOS = Device:extend{
+    model = "iOS",
+    isDefaultFullscreen = yes,
+    hasKeyboard = no,
+    hasKeys = no,
+    hasSymKey = no,
+    hasDPad = no,
+    useDPadAsActionKeys = no,
+    hasFrontlight = no,
+    hasNaturalLight = no,
+    hasNaturalLightApi = no,
+    hasEinkScreen = no,
+    hasWifiToggle = no,
+    canSuspend = no,
+    canStandby = no,
+    canPowerOff = no,
+    canReboot = no,
+    canRestart = no,
+    hasExitOptions = no,
+    isEmulator = no,
+    isDesktop = no,
+}
+
+function iOS:init()
+    local home = os.getenv("KO_HOME")
+    if home and home ~= "" then
+        self.home_dir = home
+    end
+    -- iOS UIWindow is always fullscreen; a persisted `sdl_window` size
+    -- from a prior run (points, not pixels) makes SDL_CreateWindow
+    -- open at that small point size and the drawable ends up rendering
+    -- in the top-left ~1/scale slice of the screen. Force a fresh
+    -- fullscreen open every launch and stop writing the size back to
+    -- G_reader_settings so a bad resize event can't stick.
+    self.window = {}
+    G_reader_settings:delSetting("sdl_window")
+    Device.init(self)
+end
+
 function Device:init()
     -- allows to set a viewport via environment variable
     -- syntax is Lua table syntax, e.g. EMULATE_READER_VIEWPORT="{x=10,w=550,y=5,h=790}"
@@ -433,7 +475,9 @@ end
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
 
 -------------- device probe ------------
-if os.getenv("APPIMAGE") then
+if os.getenv("KO_IOS") == "1" then
+    return iOS
+elseif os.getenv("APPIMAGE") then
     return AppImage
 elseif os.getenv("FLATPAK") then
     return Flatpak
