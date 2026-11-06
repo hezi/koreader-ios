@@ -645,6 +645,9 @@ function TouchMenu:init()
     local menu_height = self.height and math.min(self.height, self.screen_size.h) or self.screen_size.h
     local items_height = menu_height - self.bar:getSize().h - self.footer_top_margin:getSize().h - self.footer:getSize().h
     self.max_per_page = math.floor(items_height / (self.item_height + self.split_height))
+    if self.max_per_page < 1 then
+        self.max_per_page = 1
+    end
 
     self.bar:switchToTab(self.last_index or 1)
 end
@@ -653,6 +656,9 @@ function TouchMenu:updateItems(target_page, target_item_id)
     local item_table_nb = #self.item_table
     if item_table_nb == 0 then return end
     self.perpage = math.min(self.max_per_page, self.item_table.max_per_page or self.max_per_page_default)
+    if not self.perpage or self.perpage < 1 then
+        self.perpage = 1
+    end
     self.page_num = math.ceil(item_table_nb / self.perpage)
     if target_item_id ~= nil then -- show menu page with target item
         for i, v in ipairs(self.item_table) do

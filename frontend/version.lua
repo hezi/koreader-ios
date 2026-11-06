@@ -59,6 +59,13 @@ function Version:getShortVersion()
         local rev = self:getCurrentRevision()
         if (not rev or rev == "") then return "unknown" end
         local year, month, point, revision = rev:match("v(%d%d%d%d)%.(%d%d)%.?(%d?%d?)-?(%d*)")
+        if not (year and month) then
+            -- git-rev isn't a tagged vYYYY.MM.P-R release (e.g. a bare
+            -- commit hash on a fork build). Fall back to the raw rev
+            -- so the top menu's "Version" item still renders.
+            self.short = rev
+            return self.short
+        end
         self.short = year .. "." .. month
         if point and point ~= "" then
             self.short = self.short .. "." .. point

@@ -23,6 +23,8 @@ function ReaderConfig:init()
     self:initGesListener()
     if G_reader_settings:has("activate_menu") then
         self.activation_menu = G_reader_settings:readSetting("activate_menu")
+    elseif os.getenv("KO_IOS") == "1" then
+        self.activation_menu = "tap"
     else
         self.activation_menu = "swipe_tap"
     end
@@ -97,32 +99,38 @@ function ReaderConfig:initGesListener()
             },
             handler = function(ges) return self:onSwipeShowConfigMenu(ges) end,
         },
-        {
-            id = "readerconfigmenu_pan",
-            ges = "pan",
-            screen_zone = {
-                ratio_x = DTAP_ZONE_CONFIG.x, ratio_y = DTAP_ZONE_CONFIG.y,
-                ratio_w = DTAP_ZONE_CONFIG.w, ratio_h = DTAP_ZONE_CONFIG.h,
-            },
-            overrides = {
-                "rolling_pan",
-                "paging_pan",
-            },
-            handler = function(ges) return self:onSwipeShowConfigMenu(ges) end,
-        },
-        {
-            id = "readerconfigmenu_ext_pan",
-            ges = "pan",
-            screen_zone = {
-                ratio_x = DTAP_ZONE_CONFIG_EXT.x, ratio_y = DTAP_ZONE_CONFIG_EXT.y,
-                ratio_w = DTAP_ZONE_CONFIG_EXT.w, ratio_h = DTAP_ZONE_CONFIG_EXT.h,
-            },
-            overrides = {
-                "readerconfigmenu_pan",
-            },
-            handler = function(ges) return self:onSwipeShowConfigMenu(ges) end,
-        },
     })
+    -- Pan-from-bottom is the iPhone home indicator. Opening the config
+    -- menu on pan-start races the system gesture and can freeze input.
+    if os.getenv("KO_IOS") ~= "1" then
+        self.ui:registerTouchZones({
+            {
+                id = "readerconfigmenu_pan",
+                ges = "pan",
+                screen_zone = {
+                    ratio_x = DTAP_ZONE_CONFIG.x, ratio_y = DTAP_ZONE_CONFIG.y,
+                    ratio_w = DTAP_ZONE_CONFIG.w, ratio_h = DTAP_ZONE_CONFIG.h,
+                },
+                overrides = {
+                    "rolling_pan",
+                    "paging_pan",
+                },
+                handler = function(ges) return self:onSwipeShowConfigMenu(ges) end,
+            },
+            {
+                id = "readerconfigmenu_ext_pan",
+                ges = "pan",
+                screen_zone = {
+                    ratio_x = DTAP_ZONE_CONFIG_EXT.x, ratio_y = DTAP_ZONE_CONFIG_EXT.y,
+                    ratio_w = DTAP_ZONE_CONFIG_EXT.w, ratio_h = DTAP_ZONE_CONFIG_EXT.h,
+                },
+                overrides = {
+                    "readerconfigmenu_pan",
+                },
+                handler = function(ges) return self:onSwipeShowConfigMenu(ges) end,
+            },
+        })
+    end
 end
 
 function ReaderConfig:onShowConfigMenu()
