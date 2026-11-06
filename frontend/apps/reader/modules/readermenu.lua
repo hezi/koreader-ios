@@ -62,6 +62,10 @@ function ReaderMenu:init()
 
     if G_reader_settings:has("activate_menu") then
         self.activation_menu = G_reader_settings:readSetting("activate_menu")
+    elseif os.getenv("KO_IOS") == "1" then
+        -- Swipe/pan from the top is Notification Center on iPhone.
+        -- Tap the top of the page to open the menu instead.
+        self.activation_menu = "tap"
     else
         self.activation_menu = "swipe_tap"
     end
@@ -151,32 +155,39 @@ function ReaderMenu:initGesListener()
             },
             handler = function(ges) return self:onSwipeShowMenu(ges) end,
         },
-        {
-            id = "readermenu_pan",
-            ges = "pan",
-            screen_zone = {
-                ratio_x = DTAP_ZONE_MENU.x, ratio_y = DTAP_ZONE_MENU.y,
-                ratio_w = DTAP_ZONE_MENU.w, ratio_h = DTAP_ZONE_MENU.h,
-            },
-            overrides = {
-                "rolling_pan",
-                "paging_pan",
-            },
-            handler = function(ges) return self:onSwipeShowMenu(ges) end,
-        },
-        {
-            id = "readermenu_ext_pan",
-            ges = "pan",
-            screen_zone = {
-                ratio_x = DTAP_ZONE_MENU_EXT.x, ratio_y = DTAP_ZONE_MENU_EXT.y,
-                ratio_w = DTAP_ZONE_MENU_EXT.w, ratio_h = DTAP_ZONE_MENU_EXT.h,
-            },
-            overrides = {
-                "readermenu_pan",
-            },
-            handler = function(ges) return self:onSwipeShowMenu(ges) end,
-        },
     })
+    -- Pan-from-top opens the menu *while the finger is still down*. On
+    -- iPhone that gesture is also Notification Center, which cancels the
+    -- touch and used to leave KOReader stuck with a finger down.
+    if os.getenv("KO_IOS") ~= "1" then
+        self.ui:registerTouchZones({
+            {
+                id = "readermenu_pan",
+                ges = "pan",
+                screen_zone = {
+                    ratio_x = DTAP_ZONE_MENU.x, ratio_y = DTAP_ZONE_MENU.y,
+                    ratio_w = DTAP_ZONE_MENU.w, ratio_h = DTAP_ZONE_MENU.h,
+                },
+                overrides = {
+                    "rolling_pan",
+                    "paging_pan",
+                },
+                handler = function(ges) return self:onSwipeShowMenu(ges) end,
+            },
+            {
+                id = "readermenu_ext_pan",
+                ges = "pan",
+                screen_zone = {
+                    ratio_x = DTAP_ZONE_MENU_EXT.x, ratio_y = DTAP_ZONE_MENU_EXT.y,
+                    ratio_w = DTAP_ZONE_MENU_EXT.w, ratio_h = DTAP_ZONE_MENU_EXT.h,
+                },
+                overrides = {
+                    "readermenu_pan",
+                },
+                handler = function(ges) return self:onSwipeShowMenu(ges) end,
+            },
+        })
+    end
 end
 
 ReaderMenu.onReaderReady = ReaderMenu.initGesListener
@@ -470,10 +481,14 @@ function ReaderMenu:onCloseReaderMenu()
 end
 
 function ReaderMenu:onSetDimensions(dimen)
-    -- This widget doesn't support in-place layout updates, so, close & reopen
-    if self.menu_container then
+    -- This widget doesn't support in-place layout updates, so, close & reopen.
+    -- Guard against a resize *caused* by showing the menu (iOS safe-area /
+    -- home-indicator changes) looping close→show→resize forever.
+    if self.menu_container and not self._rebuilding_menu then
+        self._rebuilding_menu = true
         self:onCloseReaderMenu()
         self:onShowMenu()
+        self._rebuilding_menu = false
     end
 
     -- update gesture zones according to new screen dimen
